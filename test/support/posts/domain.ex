@@ -26,6 +26,7 @@ defmodule AshPaperTrail.Test.Posts.Domain do
     resource AshPaperTrail.Test.Posts.TemporalPost
     resource AshPaperTrail.Test.Posts.TemporalPost.Version
     resource AshPaperTrail.Test.Posts.TemporalSnapshotPost
+    resource AshPaperTrail.Test.Posts.TemporalVersionResourcePost
     resource AshPaperTrail.Test.Posts.TemporalUpsertPost
     resource AshPaperTrail.Test.Posts.TemporalPreviousValuesPost
     resource AshPaperTrail.Test.Posts.PreviousValuesPost

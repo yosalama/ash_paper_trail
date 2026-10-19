@@ -324,6 +324,7 @@ defmodule AshPaperTrail.Resource.Transformers.CreateVersionResource do
 
     version_source_mappings = AshPaperTrail.Resource.PrimaryKey.mappings(dsl_state)
     composite_primary_key? = AshPaperTrail.Resource.PrimaryKey.composite?(dsl_state)
+    period = Ash.Resource.Info.temporal_attribute(dsl_state)
 
     version_source_filter =
       AshPaperTrail.Resource.PrimaryKey.version_source_filter(dsl_state)
@@ -590,6 +591,10 @@ defmodule AshPaperTrail.Resource.Transformers.CreateVersionResource do
               allow_nil?(false)
               no_attributes?(true)
               filter unquote(Macro.escape(version_source_filter))
+
+              if unquote(period) do
+                temporal_keys({nil, unquote(period)})
+              end
             end
           else
             {_source_key, version_attr, source_attr} =
@@ -601,6 +606,10 @@ defmodule AshPaperTrail.Resource.Transformers.CreateVersionResource do
               allow_nil?(false)
               attribute_writable?(true)
               source_attribute(version_attr)
+
+              if unquote(period) do
+                temporal_keys({nil, unquote(period)})
+              end
             end
           end
 

@@ -39,8 +39,6 @@ defmodule AshPaperTrail.Resource.Transformers.RelateVersionResource do
 
   defp build_has_many(dsl_state, primary_keys) do
     inline? = AshPaperTrail.Resource.Info.temporal_inline?(dsl_state)
-    # The inline version resource is a non-temporal view of this temporal resource.
-    temporal_keys = {Ash.Resource.Info.temporal_attribute(dsl_state), nil}
 
     {default_opts, filter} =
       case primary_keys do
@@ -51,8 +49,7 @@ defmodule AshPaperTrail.Resource.Transformers.RelateVersionResource do
              name: AshPaperTrail.Resource.Info.versions_relationship_name(dsl_state),
              destination: AshPaperTrail.Resource.Info.version_resource(dsl_state),
              destination_attribute: key,
-             source_attribute: key,
-             temporal_keys: temporal_keys
+             source_attribute: key
            ], AshPaperTrail.Resource.PrimaryKey.past_versions_filter(dsl_state)}
 
         _keys when inline? ->
@@ -62,8 +59,7 @@ defmodule AshPaperTrail.Resource.Transformers.RelateVersionResource do
           {[
              name: AshPaperTrail.Resource.Info.versions_relationship_name(dsl_state),
              destination: AshPaperTrail.Resource.Info.version_resource(dsl_state),
-             no_attributes?: true,
-             temporal_keys: temporal_keys
+             no_attributes?: true
            ], Ash.Expr.expr(^same_keys and ^past)}
 
         [key] ->
@@ -84,6 +80,7 @@ defmodule AshPaperTrail.Resource.Transformers.RelateVersionResource do
 
     opts =
       default_opts
+      |> Keyword.merge(temporal_keys(dsl_state))
       |> Keyword.merge(AshPaperTrail.Resource.Info.relationship_opts(dsl_state))
 
     with {:ok, relationship} <-
@@ -94,6 +91,14 @@ defmodule AshPaperTrail.Resource.Transformers.RelateVersionResource do
              opts
            ) do
       {:ok, maybe_put_filter(relationship, filter)}
+    end
+  end
+
+  # Version resources are not temporal, so only this side of the relationship has a period.
+  defp temporal_keys(dsl_state) do
+    case Ash.Resource.Info.temporal_attribute(dsl_state) do
+      nil -> []
+      period -> [temporal_keys: {period, nil}]
     end
   end
 
