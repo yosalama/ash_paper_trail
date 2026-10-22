@@ -29,11 +29,12 @@ defmodule AshPaperTrail.Test.Posts.TemporalVersionResourcePost do
   code_interface do
     define :create
     define :update
+    define :destroy
   end
 
   actions do
     default_accept :*
-    defaults [:read, create: :*, update: :*]
+    defaults [:read, :destroy, create: :*, update: :*]
   end
 
   attributes do

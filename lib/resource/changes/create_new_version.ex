@@ -343,6 +343,39 @@ defmodule AshPaperTrail.Resource.Changes.CreateNewVersion do
     |> Enum.reduce([], fn input, inputs -> [input | inputs] end)
   end
 
+  # A temporal destroy as of a point or range ends only that part of the version it acts
+  # on, and the data layer keeps the rest. The version records the part that ended, so
+  # history says when the record stopped existing.
+  defp destroyed_part(%Ash.Changeset{action_type: :destroy} = changeset, result) do
+    with period when not is_nil(period) <-
+           Ash.Resource.Info.temporal_attribute(changeset.resource),
+         %Ash.Range{} = version <- Map.get(result, period),
+         {:ok, %Ash.Range{} = ended} <-
+           Ash.Temporal.write_period(changeset.resource, changeset.as_of) do
+      Map.put(result, period, intersection(version, ended))
+    else
+      _ -> result
+    end
+  end
+
+  defp destroyed_part(_changeset, result), do: result
+
+  defp intersection(version, ended) do
+    %{
+      version
+      | lower: later(version.lower, ended.lower),
+        upper: earlier(version.upper, ended.upper)
+    }
+  end
+
+  defp later(nil, bound), do: bound
+  defp later(bound, nil), do: bound
+  defp later(left, right), do: if(DateTime.compare(left, right) == :lt, do: right, else: left)
+
+  defp earlier(nil, bound), do: bound
+  defp earlier(bound, nil), do: bound
+  defp earlier(left, right), do: if(DateTime.compare(left, right) == :gt, do: right, else: left)
+
   defp changed?(changeset, result) do
     cond do
       changeset.action_type == :update ->
@@ -367,6 +400,7 @@ defmodule AshPaperTrail.Resource.Changes.CreateNewVersion do
   end
 
   defp build_notifications(changeset, result, opts \\ []) do
+    result = destroyed_part(changeset, result)
     version_resource = AshPaperTrail.Resource.Info.version_resource(changeset.resource)
 
     version_resource_attributes =
